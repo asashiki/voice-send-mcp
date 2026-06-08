@@ -1,0 +1,13 @@
+services:
+  voice-send:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - voice-data:/app/data/voice
+    restart: unless-stopped
+
+volumes:
+  voice-data:

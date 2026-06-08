@@ -1,0 +1,6 @@
+node_modules
+dist
+data/voice/*.mp3
+.env
+.DS_Store
+npm-debug.log*
