@@ -1,6 +1,8 @@
 node_modules
 dist
 data/voice/*.mp3
+logs
+*.pid
 .env
 .DS_Store
 npm-debug.log*

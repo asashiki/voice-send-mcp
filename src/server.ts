@@ -85,11 +85,6 @@ async function main() {
       sessionIdGenerator: undefined
     });
 
-    res.on("close", () => {
-      void transport.close();
-      void server.close();
-    });
-
     try {
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
@@ -104,6 +99,9 @@ async function main() {
           id: null
         });
       }
+    } finally {
+      void transport.close();
+      void server.close();
     }
   });
 
@@ -112,9 +110,11 @@ async function main() {
   }, 60 * 60 * 1000).unref();
   void cleanupOldVoiceFiles();
 
-  app.listen(config.port, "0.0.0.0", () => {
+  const httpServer = app.listen(config.port, "0.0.0.0", () => {
     console.log(`voice-send MCP listening on :${config.port}`);
   });
+  httpServer.keepAliveTimeout = 70_000;
+  httpServer.headersTimeout = 75_000;
 }
 
 main().catch((error) => {
