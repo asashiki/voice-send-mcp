@@ -10,10 +10,7 @@ interface BubbleData {
 
 declare global {
   interface Window {
-    openai?: {
-      toolOutput?: unknown;
-      [k: string]: unknown;
-    };
+    openai?: { toolOutput?: unknown; [k: string]: unknown };
   }
 }
 
@@ -37,6 +34,14 @@ function fmtTime(sec: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+const PLAY_SVG =
+  '<svg class="i-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72c0 .8.87 1.3 1.56.88l11.2-6.86a1.03 1.03 0 0 0 0-1.76L9.56 4.26A1.03 1.03 0 0 0 8 5.14z"/></svg>';
+const PAUSE_SVG =
+  '<svg class="i-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1.4"/><rect x="14" y="4.5" width="4" height="15" rx="1.4"/></svg>';
+
+/* Deterministic pseudo-random bar heights so the waveform is stable across renders. */
+const BAR_HEIGHTS = [38, 62, 88, 54, 72, 95, 60, 42, 78, 98, 66, 50, 84, 58, 70, 44, 90, 62, 48, 74, 56, 86, 40, 68];
+
 let rendered = false;
 
 function render(data: BubbleData, platform: "chatgpt" | "claude") {
@@ -46,80 +51,102 @@ function render(data: BubbleData, platform: "chatgpt" | "claude") {
   root.innerHTML = "";
   root.className = `platform-${platform}`;
 
+  const msg = document.createElement("div");
+  msg.className = "msg";
+
+  const ava = document.createElement("div");
+  ava.className = "ava";
+  ava.textContent = (data.senderName || "A").slice(0, 1).toUpperCase();
+
+  const stack = document.createElement("div");
+  stack.className = "stack";
+
+  const who = document.createElement("div");
+  who.className = "who";
+  who.textContent = `${data.senderName || "Anna"} · 语音`;
+
   const bubble = document.createElement("div");
   bubble.className = "bubble";
 
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.textContent = (data.senderName || "A").slice(0, 1).toUpperCase();
-
-  const body = document.createElement("div");
-  body.className = "body";
+  const voice = document.createElement("div");
+  voice.className = "voice";
 
   const audio = document.createElement("audio");
   audio.src = data.audioUrl;
   audio.preload = "metadata";
 
-  const playBtn = document.createElement("button");
-  playBtn.className = "play";
-  playBtn.setAttribute("aria-label", "play");
-  playBtn.textContent = "▶";
+  const pp = document.createElement("button");
+  pp.className = "pp";
+  pp.setAttribute("aria-label", "播放语音");
+  pp.innerHTML = PLAY_SVG + PAUSE_SVG;
 
-  const waves = document.createElement("div");
-  waves.className = "waves";
-  for (let i = 0; i < 28; i += 1) {
-    const bar = document.createElement("span");
-    bar.style.height = `${20 + Math.abs(Math.sin(i * 1.7)) * 70}%`;
-    waves.appendChild(bar);
-  }
+  const wave = document.createElement("div");
+  wave.className = "wave";
+  const bars: HTMLElement[] = [];
+  BAR_HEIGHTS.forEach((h, i) => {
+    const bar = document.createElement("i");
+    bar.style.setProperty("--h", String(h));
+    bar.style.setProperty("--d", String(i));
+    wave.appendChild(bar);
+    bars.push(bar);
+  });
 
-  const time = document.createElement("div");
-  time.className = "time";
-  time.textContent = data.durationMs ? fmtTime(data.durationMs / 1000) : "0:00";
+  const dur = document.createElement("div");
+  dur.className = "dur";
+  dur.textContent = data.durationMs ? fmtTime(data.durationMs / 1000) : "0:00";
+
+  const setProgress = (ratio: number) => {
+    const lit = Math.round(ratio * bars.length);
+    bars.forEach((bar, i) => bar.classList.toggle("done", i < lit));
+  };
 
   audio.addEventListener("loadedmetadata", () => {
-    if (Number.isFinite(audio.duration)) time.textContent = fmtTime(audio.duration);
+    if (Number.isFinite(audio.duration)) dur.textContent = fmtTime(audio.duration);
   });
   audio.addEventListener("timeupdate", () => {
     if (Number.isFinite(audio.duration) && audio.duration > 0) {
-      const pct = audio.currentTime / audio.duration;
-      waves.style.setProperty("--progress", `${Math.round(pct * 100)}%`);
-      time.textContent = fmtTime(audio.duration - audio.currentTime);
+      setProgress(audio.currentTime / audio.duration);
+      dur.textContent = fmtTime(audio.duration - audio.currentTime);
     }
   });
+  audio.addEventListener("play", () => voice.classList.add("playing"));
+  audio.addEventListener("pause", () => voice.classList.remove("playing"));
   audio.addEventListener("ended", () => {
-    playBtn.textContent = "▶";
-    waves.style.setProperty("--progress", "0%");
-    time.textContent = data.durationMs ? fmtTime(data.durationMs / 1000) : fmtTime(audio.duration || 0);
+    voice.classList.remove("playing");
+    setProgress(0);
+    dur.textContent = fmtTime(audio.duration || 0);
   });
-  playBtn.addEventListener("click", () => {
-    if (audio.paused) {
-      void audio.play();
-      playBtn.textContent = "⏸";
-    } else {
-      audio.pause();
-      playBtn.textContent = "▶";
-    }
+  audio.addEventListener("error", () => {
+    voice.classList.remove("playing");
+    dur.textContent = "✕";
+    who.textContent = `${data.senderName || "Anna"} · 音频加载失败`;
   });
 
-  const player = document.createElement("div");
-  player.className = "player";
-  player.append(playBtn, waves, time);
+  pp.addEventListener("click", () => {
+    if (audio.paused) void audio.play();
+    else audio.pause();
+  });
 
-  const name = document.createElement("div");
-  name.className = "name";
-  name.textContent = data.senderName || "Anna";
+  /* Click the waveform to seek. */
+  wave.addEventListener("click", (e) => {
+    if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+    const rect = wave.getBoundingClientRect();
+    const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+    audio.currentTime = ratio * audio.duration;
+    if (audio.paused) void audio.play();
+  });
 
-  body.append(name, player);
+  voice.append(pp, wave, dur);
+  bubble.appendChild(voice);
+  stack.append(who, bubble);
   if (data.text) {
     const caption = document.createElement("div");
     caption.className = "caption";
     caption.textContent = data.text;
-    body.appendChild(caption);
+    stack.appendChild(caption);
   }
-
-  bubble.append(avatar, body, audio);
-  root.appendChild(bubble);
+  msg.append(ava, stack, audio);
+  root.appendChild(msg);
 }
 
 function showError(msg: string) {
@@ -141,7 +168,7 @@ function tryChatGpt(): boolean {
 
 async function tryMcpApps() {
   try {
-    const app = new App({ name: "asashiki-voice-send", version: "0.1.0" });
+    const app = new App({ name: "asashiki-voice-send", version: "0.2.0" });
     app.ontoolresult = (params: { structuredContent?: unknown }) => {
       const data = coerce(params?.structuredContent);
       if (data) render(data, "claude");

@@ -1,3 +1,5 @@
+import { numberEnv, type SynthesisResult, type TtsProvider } from "./provider.js";
+
 const DEFAULT_ENDPOINT = "https://api.minimaxi.com/v1/t2a_v2";
 const DEFAULT_MODEL = "speech-2.8-hd";
 const DEFAULT_FORMAT = "mp3";
@@ -7,6 +9,7 @@ export interface MinimaxConfig {
   endpoint: string;
   model: string;
   voiceId: string;
+  groupId: string | null;
   speed: number;
   volume: number;
   pitch: number;
@@ -16,22 +19,15 @@ export interface MinimaxConfig {
   channel: number;
 }
 
-function numberEnv(env: NodeJS.ProcessEnv, name: string, defaultValue: number): number {
-  const value = Number.parseFloat(env[name] ?? "");
-  return Number.isFinite(value) ? value : defaultValue;
-}
-
 export function parseMinimaxConfig(env: NodeJS.ProcessEnv): MinimaxConfig | null {
   const apiKey = env.MINIMAX_API_KEY?.trim();
-  const endpoint = env.MINIMAX_API_BASE_URL?.trim() || DEFAULT_ENDPOINT;
-  const model = env.MINIMAX_MODEL?.trim() || DEFAULT_MODEL;
-  const voiceId = env.MINIMAX_VOICE_ID?.trim() || "AnnaClone2026new";
   if (!apiKey) return null;
   return {
     apiKey,
-    endpoint,
-    model,
-    voiceId,
+    endpoint: env.MINIMAX_API_BASE_URL?.trim() || DEFAULT_ENDPOINT,
+    model: env.MINIMAX_MODEL?.trim() || DEFAULT_MODEL,
+    voiceId: env.MINIMAX_VOICE_ID?.trim() || "AnnaClone2026new",
+    groupId: env.MINIMAX_GROUP_ID?.trim() || null,
     speed: numberEnv(env, "MINIMAX_VOICE_SPEED", 1),
     volume: numberEnv(env, "MINIMAX_VOICE_VOLUME", 1),
     pitch: numberEnv(env, "MINIMAX_VOICE_PITCH", 0),
@@ -49,9 +45,12 @@ interface MinimaxResponse {
 
 export async function synthesizeVoice(config: MinimaxConfig, text: string): Promise<Buffer> {
   if (!text || text.trim().length === 0) throw new Error("text is empty");
-  if (text.length > 5000) throw new Error("text too long (max 5000 chars)");
 
-  const res = await fetch(config.endpoint, {
+  const url = config.groupId
+    ? `${config.endpoint}?GroupId=${encodeURIComponent(config.groupId)}`
+    : config.endpoint;
+
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
@@ -86,3 +85,24 @@ export async function synthesizeVoice(config: MinimaxConfig, text: string): Prom
   if (!hex) throw new Error("MiniMax response missing data.audio");
   return Buffer.from(hex, "hex");
 }
+
+export const minimaxProvider: TtsProvider = {
+  name: "minimax",
+  maxTextLength: 10_000,
+
+  isConfigured(env) {
+    return parseMinimaxConfig(env) !== null;
+  },
+
+  async synthesize(text, env): Promise<SynthesisResult> {
+    const config = parseMinimaxConfig(env);
+    if (!config) throw new Error("MiniMax is not configured. Set MINIMAX_API_KEY.");
+    const audio = await synthesizeVoice(config, text);
+    const ext = config.audioFormat === "mp3" ? "mp3" : config.audioFormat;
+    return {
+      audio,
+      mimeType: ext === "mp3" ? "audio/mpeg" : `audio/${ext}`,
+      fileExtension: ext
+    };
+  }
+};

@@ -36,11 +36,12 @@ The implementation follows MCP first. Claude and ChatGPT differences are kept to
 - Public audio hosting: generated mp3 files served from `GET /voice/<uuid>.mp3`.
 - Health check: `GET /healthz`.
 - MCP tool: `voice_send`, input `{ text, senderName? }`.
-- MCP resource: `ui://widget/voice-bubble-v1.html`, MIME `text/html;profile=mcp-app`.
+- MCP resource: `ui://widget/voice-bubble-v2.html`, MIME `text/html;profile=mcp-app`.
 - MCP Apps UI: one shared visual UI for Claude and ChatGPT.
 - Client compatibility: standard `_meta.ui.resourceUri` plus ChatGPT `openai/outputTemplate`.
 - Widget CSP: MCP Apps standard CSP plus ChatGPT `openai/widgetCSP`.
-- Configurable TTS: provider, model, voice, speed, volume, pitch, sample rate, bitrate, format, channel.
+- Multi-provider TTS with auto-detection: **Edge TTS (free, keyless) / MiniMax / OpenAI-compatible / ElevenLabs**, with per-provider input caps and automatic truncation.
+- Sakura voice-bubble UI (Asashiki design tokens, light/dark aware): waveform progress, click-to-seek, playing animation.
 
 ## Quick Start
 
@@ -143,14 +144,30 @@ VOICE_RETENTION_HOURS=24
 MCP_VOICE_AUDIO_ORIGIN=
 ```
 
-TTS:
+TTS — pick a provider (or leave `auto`):
+
+| Provider | Quality | Cost | Key | Text cap |
+|---|---|---|---|---|
+| `edge` (keyless default) | Good | Free | none | 5000 |
+| `minimax` | Excellent (voice clone) | Paid | `MINIMAX_API_KEY` | 10000 |
+| `openai` (any compatible endpoint via `OPENAI_TTS_BASE_URL`) | Good | Paid | `OPENAI_API_KEY` | 4096 |
+| `elevenlabs` | Excellent | Paid | `ELEVENLABS_API_KEY` | 10000 |
+
+`TTS_PROVIDER=auto` (default) picks the first configured: minimax → elevenlabs → openai → edge. Override any cap with `TTS_MAX_TEXT_LENGTH`.
 
 ```bash
-TTS_PROVIDER=minimax
+TTS_PROVIDER=auto
+
+# Edge TTS (free, no key — note: some datacenter IPs get WebSocket 403)
+EDGE_TTS_VOICE=zh-CN-XiaoxiaoNeural
+# EDGE_TTS_RATE=+0%  EDGE_TTS_PITCH=+0Hz  EDGE_TTS_VOLUME=+0%
+
+# MiniMax T2A v2 (use api.minimaxi.com with mainland token-plan keys)
 MINIMAX_API_KEY=
 MINIMAX_API_BASE_URL=https://api.minimaxi.com/v1/t2a_v2
 MINIMAX_MODEL=speech-2.8-hd
 MINIMAX_VOICE_ID=AnnaClone2026new
+# MINIMAX_GROUP_ID=            # set if the API reports group_id required
 MINIMAX_VOICE_SPEED=1
 MINIMAX_VOICE_VOLUME=1
 MINIMAX_VOICE_PITCH=0
@@ -158,15 +175,21 @@ MINIMAX_SAMPLE_RATE=32000
 MINIMAX_BITRATE=128000
 MINIMAX_AUDIO_FORMAT=mp3
 MINIMAX_CHANNEL=1
+
+# OpenAI TTS / OpenAI-compatible
+OPENAI_API_KEY=
+OPENAI_TTS_BASE_URL=https://api.openai.com/v1
+OPENAI_TTS_MODEL=gpt-4o-mini-tts
+OPENAI_TTS_VOICE=alloy
+OPENAI_TTS_SPEED=1
+
+# ElevenLabs
+ELEVENLABS_API_KEY=
+ELEVENLABS_VOICE_ID=pNInz6obpgDQGcFmaJgB
+ELEVENLABS_MODEL_ID=eleven_multilingual_v2
 ```
 
-Widget UI:
-
-```bash
-VOICE_WIDGET_ACCENT_COLOR=#2f6df6
-VOICE_WIDGET_AVATAR_GRADIENT=linear-gradient(135deg,#5b8cff,#8a5bff)
-VOICE_WIDGET_PLAYER_RADIUS=14px
-```
+Widget UI: styled with the Asashiki sakura design tokens (light/dark via `prefers-color-scheme`); no env styling knobs. After widget changes, bump the version in `src/widget/voice-bubble-html.ts` (`voice-bubble-v2.html` → `v3`...) — hosts cache `ui://` resources by URI.
 
 ## Claude And ChatGPT UI
 

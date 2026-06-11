@@ -1,6 +1,6 @@
 {
   "name": "@asashiki/voice-send-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Standalone MCP server for sending MiniMax TTS voice messages with an MCP Apps playable chat widget.",
   "private": true,
   "type": "module",
@@ -14,11 +14,14 @@
   },
   "homepage": "https://github.com/asashiki/voice-send-mcp#readme",
   "keywords": [
+    "edge-tts",
+    "elevenlabs",
     "mcp",
-    "model-context-protocol",
     "mcp-apps",
-    "tts",
     "minimax",
+    "model-context-protocol",
+    "openai",
+    "tts",
     "voice"
   ],
   "bin": {
@@ -35,6 +38,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@andresaya/edge-tts": "^1.8.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",

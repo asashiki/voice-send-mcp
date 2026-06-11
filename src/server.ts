@@ -3,12 +3,12 @@ import path from "node:path";
 import cors from "cors";
 import express from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { parseMinimaxConfig } from "./backend/minimax.js";
+import { resolveProvider } from "./backend/registry.js";
 import { loadConfig } from "./config.js";
 import { createMcpServer } from "./mcp.js";
 
 const config = loadConfig({ requirePublicBaseUrl: true });
-const minimaxConfig = parseMinimaxConfig(process.env);
+
 const mcpPaths = Array.from(new Set([config.mcpHttpPath, "/mcp"]));
 
 async function cleanupOldVoiceFiles() {
@@ -65,7 +65,7 @@ async function main() {
       ok: true,
       service: "voice-send",
       transport: "streamable-http",
-      minimaxConfigured: Boolean(minimaxConfig),
+      ttsProvider: (() => { try { return resolveProvider(process.env).name; } catch { return "invalid"; } })(),
       publicBaseUrl: config.publicBaseUrl,
       mcpEndpoint: `${config.publicBaseUrl}${config.mcpHttpPath}`,
       audioOrigins: config.audioOrigins,

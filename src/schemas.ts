@@ -4,8 +4,8 @@ export const voiceSendInputSchema = z.object({
   text: z
     .string()
     .min(1)
-    .max(300)
-    .describe("Spoken text, 1-300 chars. Chinese works best. One or two short sentences are ideal."),
+    .max(500)
+    .describe("Spoken text, 1-500 chars. One or two short sentences are ideal for a chat voice bubble."),
   senderName: z
     .string()
     .min(1)

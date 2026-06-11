@@ -1,41 +1,84 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { WidgetThemeConfig } from "../config.js";
 
-export const VOICE_BUBBLE_URI = "ui://widget/voice-bubble-v1.html";
+/** Bump the version suffix whenever the widget changes — hosts cache ui:// resources by URI. */
+export const VOICE_BUBBLE_URI = "ui://widget/voice-bubble-v2.html";
 export const VOICE_BUBBLE_MIME = "text/html;profile=mcp-app";
 
-function css(theme: WidgetThemeConfig): string {
-  return `
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, -apple-system, "PingFang SC", sans-serif; background: transparent; }
-  #root { padding: 8px; }
-  .bubble { display: flex; gap: 10px; align-items: flex-start; max-width: 420px; }
-  .avatar { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%;
-            background: ${theme.avatarGradient}; color:#fff; font-weight:700;
-            display:flex; align-items:center; justify-content:center; font-size:1.05rem; }
-  .body { flex: 1 1 auto; min-width: 0; }
-  .name { font-size: .8rem; color: #888; margin: 2px 0 5px; }
-  .player { display:flex; align-items:center; gap:10px; background:#e7f0ff; border-radius:${theme.playerRadius};
-            padding:9px 12px; }
-  .play { flex:0 0 auto; width:34px; height:34px; border-radius:50%; border:none; cursor:pointer;
-          background:${theme.accentColor}; color:#fff; font-size:.85rem; line-height:1; }
-  .waves { position:relative; flex:1 1 auto; height:26px; display:flex; align-items:center; gap:2px;
-           overflow:hidden; --progress:0%; }
-  .waves span { flex:1 1 auto; background:#9db8ee; border-radius:2px; min-width:2px; }
-  .waves::after { content:""; position:absolute; left:0; top:0; bottom:0; width:var(--progress);
-                  background:color-mix(in srgb, ${theme.accentColor} 25%, transparent); pointer-events:none; transition:width .1s linear; }
-  .time { flex:0 0 auto; font-variant-numeric:tabular-nums; font-size:.78rem; color:#456; min-width:34px; text-align:right; }
-  .caption { margin-top:6px; font-size:.85rem; color:#444; line-height:1.4; overflow-wrap:anywhere; }
-  .err { color:#999; font-size:.85rem; padding:6px; }
+/* Asashiki Design · 樱羽 Sakura tokens (inlined), light + dark via prefers-color-scheme. */
+const CSS = `
+  :root {
+    --bg-tint:#fff2f9; --surface:#ffffff;
+    --border:#f3dce9; --border-strong:#e9c4d9;
+    --text:#3a3340; --text-2:#8a7d8f; --text-3:#b8aabb;
+    --accent:#e96ba8; --accent-soft:#fdd9ec;
+    --accent-2:#8b8bef; --accent-2-soft:#e1e1fe; --on-accent:#ffffff;
+    --shadow:0 1px 2px rgba(180,120,160,.06),0 4px 16px rgba(180,120,160,.08);
+    --radius-s:7px; --radius-m:10px; --radius-l:14px;
+    --font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue","PingFang SC","Hiragino Sans","Microsoft YaHei UI","Noto Sans SC",sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace;
+    color-scheme: light dark;
+  }
   @media (prefers-color-scheme: dark) {
-    .name { color:#9aa3b2; } .player { background:#1f2733; }
-    .waves span { background:#3a4a66; } .time { color:#9bb; } .caption { color:#cdd3dc; }
+    :root {
+      --bg-tint:#372240; --surface:#201b2a;
+      --border:#3e3149; --border-strong:#564662;
+      --text:#f1eaf4; --text-2:#b3a2ba; --text-3:#7d6e86;
+      --accent:#f48fc4; --accent-soft:#4f2745;
+      --accent-2:#a9a9fa; --accent-2-soft:#30305f; --on-accent:#2a1320;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35);
+    }
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:transparent; font-family:var(--font); color:var(--text);
+         -webkit-font-smoothing:antialiased; }
+  #root { padding:4px 0; }
+
+  .msg { display:flex; gap:10px; max-width:400px; animation:msgIn .3s ease; }
+  @keyframes msgIn { from { transform:translateY(5px); opacity:0; } to { transform:none; opacity:1; } }
+  .ava { width:32px; height:32px; border-radius:var(--radius-m); flex-shrink:0;
+         display:flex; align-items:center; justify-content:center;
+         background:var(--accent-2-soft); color:var(--accent-2);
+         font-weight:700; font-size:14px; }
+  .stack { display:flex; flex-direction:column; gap:4px; min-width:0; flex:1; }
+  .who { font-size:11px; color:var(--text-3); padding-left:4px; font-family:var(--mono); }
+
+  .bubble { background:var(--bg-tint); border:1px solid var(--border);
+            border-radius:var(--radius-l); border-top-left-radius:var(--radius-s);
+            padding:9px 13px; }
+
+  .voice { display:flex; align-items:center; gap:10px; min-width:218px; }
+  .pp { width:30px; height:30px; border-radius:50%; flex-shrink:0; border:none; cursor:pointer;
+        background:var(--accent); color:var(--on-accent);
+        display:flex; align-items:center; justify-content:center;
+        transition:all .18s ease; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .pp:hover { filter:brightness(1.07); }
+  .pp:active { transform:scale(.94); }
+  .pp svg { width:12px; height:12px; display:block; }
+  .pp .i-pause { display:none; }
+  .voice.playing .pp .i-play { display:none; }
+  .voice.playing .pp .i-pause { display:block; }
+
+  .wave { display:flex; align-items:center; gap:2.5px; height:26px; flex:1; cursor:pointer; }
+  .wave i { width:3px; border-radius:2px; background:var(--text-3); opacity:.55;
+            height:calc(var(--h) * 1%); transition:background .15s ease, opacity .15s ease; }
+  .wave i.done { background:var(--accent); opacity:1; }
+  .voice.playing .wave i { animation:wavebob 1s ease-in-out infinite;
+                           animation-delay:calc(var(--d) * -0.09s); }
+  @keyframes wavebob {
+    0%, 100% { transform:scaleY(.6); }
+    50% { transform:scaleY(1.15); }
+  }
+
+  .dur { font-family:var(--mono); font-size:11.5px; color:var(--text-2); min-width:32px; text-align:right; }
+  .caption { font-size:13px; color:var(--text-2); line-height:1.5; overflow-wrap:anywhere;
+             padding:2px 4px 0; }
+  .err { color:var(--text-3); font-size:13px; padding:6px 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration:.01ms !important; }
   }
 `;
-}
 
 let cachedJs: string | null = null;
 
@@ -51,9 +94,9 @@ function widgetJs(): string {
   return cachedJs;
 }
 
-export function voiceBubbleHtml(theme: WidgetThemeConfig): string {
+export function voiceBubbleHtml(): string {
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<style>${css(theme)}</style></head>
+<style>${CSS}</style></head>
 <body><div id="root"></div><script>${widgetJs()}</script></body></html>`;
 }

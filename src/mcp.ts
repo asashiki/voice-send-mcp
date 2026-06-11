@@ -2,8 +2,9 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
-import { parseMinimaxConfig, synthesizeVoice } from "./backend/minimax.js";
+import type { z } from "zod";
+import { truncateForProvider } from "./backend/provider.js";
+import { resolveProvider } from "./backend/registry.js";
 import type { AppConfig } from "./config.js";
 import { voiceSendInputSchema, voiceSendResultSchema, type VoiceSendResult } from "./schemas.js";
 import { VOICE_BUBBLE_MIME, VOICE_BUBBLE_URI, voiceBubbleHtml } from "./widget/voice-bubble-html.js";
@@ -24,25 +25,18 @@ function voiceCspMeta(config: AppConfig) {
 }
 
 async function createVoice(config: AppConfig, input: z.infer<typeof voiceSendInputSchema>): Promise<VoiceSendResult> {
-  if (config.ttsProvider !== "minimax") {
-    throw new Error(`Unsupported TTS provider: ${config.ttsProvider}`);
-  }
+  const provider = resolveProvider(process.env);
+  const text = truncateForProvider(input.text, provider, process.env);
+  const result = await provider.synthesize(text, process.env);
 
-  const minimaxConfig = parseMinimaxConfig(process.env);
-  if (!minimaxConfig) {
-    throw new Error("MiniMax is not configured. Set MINIMAX_API_KEY.");
-  }
-
-  const audio = await synthesizeVoice(minimaxConfig, input.text);
   await fs.mkdir(config.voiceDir, { recursive: true });
-
-  const filename = `${crypto.randomUUID()}.mp3`;
-  await fs.writeFile(path.join(config.voiceDir, filename), audio);
+  const filename = `${crypto.randomUUID()}.${result.fileExtension}`;
+  await fs.writeFile(path.join(config.voiceDir, filename), result.audio);
 
   return {
     audioUrl: `${config.publicBaseUrl}/voice/${filename}`,
-    mimeType: "audio/mpeg",
-    text: input.text,
+    mimeType: result.mimeType,
+    text,
     senderName: input.senderName ?? "Anna",
     durationMs: null,
     createdAt: new Date().toISOString()
@@ -52,7 +46,7 @@ async function createVoice(config: AppConfig, input: z.infer<typeof voiceSendInp
 export function createMcpServer(config: AppConfig): McpServer {
   const server = new McpServer({
     name: "voice-send",
-    version: "0.1.0"
+    version: "0.2.0"
   });
   const csp = voiceCspMeta(config);
 
@@ -70,7 +64,7 @@ export function createMcpServer(config: AppConfig): McpServer {
         {
           uri: VOICE_BUBBLE_URI,
           mimeType: VOICE_BUBBLE_MIME,
-          text: voiceBubbleHtml(config.widgetTheme),
+          text: voiceBubbleHtml(),
           _meta: csp
         }
       ]
@@ -81,7 +75,9 @@ export function createMcpServer(config: AppConfig): McpServer {
     "voice_send",
     {
       title: "Send Voice Message",
-      description: "Synthesize a short voice message and render it as a playable bubble in the chat.",
+      description:
+        "Synthesize a short voice message (TTS) and render it as a playable voice bubble in the chat. " +
+        "Use when the user asks you to say something out loud, send a voice message, or when a spoken reply adds warmth.",
       inputSchema: voiceSendInputSchema,
       outputSchema: voiceSendResultSchema,
       annotations: {
