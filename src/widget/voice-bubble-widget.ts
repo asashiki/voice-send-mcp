@@ -155,35 +155,35 @@ function showError(msg: string) {
   if (root) root.innerHTML = `<div class="err">${msg}</div>`;
 }
 
-function tryChatGpt(): boolean {
-  if (!window.openai) return false;
+function tryChatGpt() {
+  if (!window.openai) return;
   const apply = () => {
     const data = coerce(window.openai?.toolOutput);
     if (data) render(data, "chatgpt");
   };
   apply();
   window.addEventListener("openai:set_globals", apply as EventListener);
-  return true;
 }
 
 async function tryMcpApps() {
   try {
     const app = new App({ name: "asashiki-voice-send", version: "0.2.0" });
-    app.ontoolresult = (params: { structuredContent?: unknown }) => {
+    /* Register before connect() — host may send toolresult during/right after handshake */
+    app.addEventListener("toolresult", (params: { structuredContent?: unknown }) => {
+      console.debug("[voice-bubble] ontoolresult:", JSON.stringify(params)?.slice(0, 200));
       const data = coerce(params?.structuredContent);
       if (data) render(data, "claude");
-    };
+    });
     await app.connect();
   } catch (e) {
-    showError("语音组件初始化失败");
-    console.error(e);
+    console.debug("[voice-bubble] MCP Apps connect skipped:", e);
   }
 }
 
 function boot() {
-  if (!tryChatGpt()) {
-    void tryMcpApps();
-  }
+  /* Run both bridges in parallel — rendered flag prevents double-render */
+  tryChatGpt();
+  void tryMcpApps();
   setTimeout(() => showError("等待语音数据..."), 4000);
 }
 
