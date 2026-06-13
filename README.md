@@ -153,10 +153,13 @@ PUBLIC_BASE_URL=https://voice.example.com
 PORT=3000
 MCP_HTTP_PATH=/mcp/voice
 ALLOWED_ORIGINS=https://voice.example.com
+MCP_AUTH_PASSWORD=
 VOICE_DIR=/app/data/voice
 VOICE_RETENTION_HOURS=24
 MCP_VOICE_AUDIO_ORIGIN=
 ```
+
+Set `MCP_AUTH_PASSWORD` to enable OAuth dynamic client registration and a password authorization page for remote connectors. Leave it empty to disable auth.
 
 TTS — pick a provider (or leave `auto`):
 

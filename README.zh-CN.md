@@ -81,7 +81,7 @@ cp .env.example .env   # 编辑：PUBLIC_BASE_URL / TTS provider 的 key
 docker compose up -d --build
 ```
 
-反向代理 `https://你的域名/mcp/voice` 和 `https://你的域名/voice/*` 到容器 `:3000`（Caddy 示例见 `deploy/Caddyfile.example`）。然后在 claude.ai 添加自定义连接器填 MCP 地址，OAuth 两项留空。
+反向代理 `https://你的域名/mcp/voice` 和 `https://你的域名/voice/*` 到容器 `:3000`（Caddy 示例见 `deploy/Caddyfile.example`）。然后在 claude.ai 添加自定义连接器填 MCP 地址。如果设置了 `MCP_AUTH_PASSWORD`，连接器会走 OAuth 动态客户端注册，并弹出密码授权页。
 
 如果音频走另一个域名，设置 `MCP_VOICE_AUDIO_ORIGIN` 让 widget CSP 放行。
 
@@ -94,9 +94,12 @@ PUBLIC_BASE_URL=https://你的域名
 PORT=3000
 MCP_HTTP_PATH=/mcp/voice
 ALLOWED_ORIGINS=https://你的域名
+MCP_AUTH_PASSWORD=
 VOICE_DIR=/app/data/voice
 VOICE_RETENTION_HOURS=24
 ```
+
+设置 `MCP_AUTH_PASSWORD` 后会启用 OAuth 密码授权；留空则关闭授权。
 
 TTS（全部可选项见 `.env.example`）：
 
