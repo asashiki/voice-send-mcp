@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Bump the version suffix whenever the widget changes — hosts cache ui:// resources by URI. */
-export const VOICE_BUBBLE_URI = "ui://widget/voice-bubble-v4.html";
+export const VOICE_BUBBLE_URI = "ui://widget/voice-bubble-v5.html";
 export const VOICE_BUBBLE_MIME = "text/html;profile=mcp-app";
 
 /* Asashiki Design · 樱羽 Sakura tokens (inlined), light + dark via prefers-color-scheme. */

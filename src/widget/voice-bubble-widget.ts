@@ -169,9 +169,16 @@ async function tryMcpApps() {
   try {
     const app = new App({ name: "asashiki-voice-send", version: "0.2.0" });
     /* Register before connect() — host may send toolresult during/right after handshake */
-    app.addEventListener("toolresult", (params: { structuredContent?: unknown }) => {
-      console.debug("[voice-bubble] ontoolresult:", JSON.stringify(params)?.slice(0, 200));
-      const data = coerce(params?.structuredContent);
+    app.addEventListener("toolresult", (params: { structuredContent?: unknown; content?: Array<{ type: string; text?: string }> }) => {
+      console.debug("[voice-bubble] ontoolresult:", JSON.stringify(params)?.slice(0, 300));
+      let data = coerce(params?.structuredContent);
+      if (!data && Array.isArray(params?.content)) {
+        for (const block of params.content) {
+          if (block.type === "text" && block.text) {
+            try { const p = JSON.parse(block.text); data = coerce(p); if (data) break; } catch { /* not json */ }
+          }
+        }
+      }
       if (data) render(data, "claude");
     });
     await app.connect();

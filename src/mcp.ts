@@ -94,7 +94,10 @@ export function createMcpServer(config: AppConfig): McpServer {
     async (input) => {
       const output = await createVoice(config, input);
       return {
-        content: [{ type: "text", text: `Voice message from ${output.senderName}: ${output.text}` }],
+        content: [
+          { type: "text", text: `Voice message from ${output.senderName}: ${output.text}` },
+          { type: "text", text: JSON.stringify(output) }
+        ],
         structuredContent: output,
         _meta: { ui: { resourceUri: VOICE_BUBBLE_URI } }
       };
