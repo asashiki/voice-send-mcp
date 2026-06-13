@@ -4,7 +4,8 @@ voice-send.example.com {
   reverse_proxy voice-send:3000
 }
 
-mcp.asashiki.com {
+# Or path-routed on a shared MCP domain:
+mcp.example.com {
   encode zstd gzip
 
   handle /mcp/voice* {

@@ -1,13 +1,27 @@
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.svg">
+  <img alt="voice-send-mcp — TTS voice bubbles in AI chat" src=".github/assets/banner-light.svg" width="100%">
+</picture>
+
+[![CI](https://github.com/asashiki/voice-send-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/asashiki/voice-send-mcp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-e96ba8.svg)](LICENSE)
+![Node](https://img.shields.io/badge/node-%E2%89%A5%2020-8b8bef)
+![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20Streamable%20HTTP-3a3340)
+
+**English** · [简体中文](README.zh-CN.md)
+
+</div>
+
 # voice-send
 
-Standalone MCP server for sending short playable voice messages in AI chat clients. It exposes a `voice_send` tool, synthesizes speech through MiniMax T2A, stores the mp3, and returns a `ui://` widget so MCP Apps capable clients can render an in-chat audio bubble.
+Standalone MCP server for sending short playable voice messages in AI chat clients. It exposes a `voice_send` tool, synthesizes speech through one of four TTS providers, stores the mp3, and returns a `ui://` widget so MCP Apps capable clients can render an in-chat audio bubble.
 
-GitHub target: `https://github.com/asashiki/voice-send-mcp`
-
-Public test endpoint:
+Example deployed endpoint (yours will differ):
 
 ```text
-https://mcp.asashiki.com/mcp/voice
+https://voice.example.com/mcp/voice
 ```
 
 This repository is designed as a complete GitHub-ready MCP tool project: local stdio MCP, remote Streamable HTTP MCP, Docker deployment, typed configuration, CI, and public-safe docs.
@@ -53,19 +67,19 @@ npm run build
 For local stdio MCP:
 
 ```bash
-PUBLIC_BASE_URL=https://mcp.asashiki.com MINIMAX_API_KEY=... npm run start:stdio
+PUBLIC_BASE_URL=https://voice.example.com MINIMAX_API_KEY=... npm run start:stdio
 ```
 
 For remote HTTP MCP:
 
 ```bash
-PUBLIC_BASE_URL=https://mcp.asashiki.com MCP_HTTP_PATH=/mcp/voice MINIMAX_API_KEY=... npm start
+PUBLIC_BASE_URL=https://voice.example.com MCP_HTTP_PATH=/mcp/voice MINIMAX_API_KEY=... npm start
 ```
 
 Remote clients connect to:
 
 ```text
-https://mcp.asashiki.com/mcp/voice
+https://voice.example.com/mcp/voice
 ```
 
 ## Local MCP Configuration
@@ -82,7 +96,7 @@ Example MCP client config:
       "args": ["/absolute/path/to/voice-send/dist/stdio.js"],
       "env": {
         "MINIMAX_API_KEY": "...",
-        "PUBLIC_BASE_URL": "https://mcp.asashiki.com",
+        "PUBLIC_BASE_URL": "https://voice.example.com",
         "MCP_HTTP_PATH": "/mcp/voice"
       }
     }
@@ -97,9 +111,9 @@ The widget needs an audio URL that the host sandbox can fetch. For Claude / Chat
 Set:
 
 ```bash
-PUBLIC_BASE_URL=https://mcp.asashiki.com
+PUBLIC_BASE_URL=https://voice.example.com
 MCP_HTTP_PATH=/mcp/voice
-ALLOWED_ORIGINS=https://mcp.asashiki.com
+ALLOWED_ORIGINS=https://voice.example.com
 ```
 
 The MCP endpoint becomes:
@@ -135,10 +149,10 @@ Example Caddy reverse proxy config is in `deploy/Caddyfile.example`.
 Core:
 
 ```bash
-PUBLIC_BASE_URL=https://mcp.asashiki.com
+PUBLIC_BASE_URL=https://voice.example.com
 PORT=3000
 MCP_HTTP_PATH=/mcp/voice
-ALLOWED_ORIGINS=https://mcp.asashiki.com
+ALLOWED_ORIGINS=https://voice.example.com
 VOICE_DIR=/app/data/voice
 VOICE_RETENTION_HOURS=24
 MCP_VOICE_AUDIO_ORIGIN=
@@ -166,7 +180,7 @@ EDGE_TTS_VOICE=zh-CN-XiaoxiaoNeural
 MINIMAX_API_KEY=
 MINIMAX_API_BASE_URL=https://api.minimaxi.com/v1/t2a_v2
 MINIMAX_MODEL=speech-2.8-hd
-MINIMAX_VOICE_ID=AnnaClone2026new
+MINIMAX_VOICE_ID=female-shaonv   # system voice id, or your cloned voice id
 # MINIMAX_GROUP_ID=            # set if the API reports group_id required
 MINIMAX_VOICE_SPEED=1
 MINIMAX_VOICE_VOLUME=1
@@ -233,9 +247,10 @@ Generated files:
 
 ```text
 src/
-  backend/minimax.ts          MiniMax T2A connector
+  backend/                    TTS providers (minimax / openai / elevenlabs / edge) + registry
   config.ts                   environment parsing
   mcp.ts                      tools/resources registration
+  schemas.ts                  zod input/output schemas
   server.ts                   Streamable HTTP server
   stdio.ts                    local stdio MCP entry
   widget/                     MCP Apps widget HTML and browser runtime
@@ -244,21 +259,6 @@ deploy/Caddyfile.example      domain reverse proxy example
 Dockerfile                    production image
 docker-compose.yml            single-service deployment
 ```
-
-## GitHub Setup
-
-Create the GitHub repository under `asashiki`:
-
-```bash
-git init
-git branch -M main
-git add .
-git commit -m "Initial voice-send MCP project"
-git remote add origin git@github.com:asashiki/voice-send-mcp.git
-git push -u origin main
-```
-
-Do not commit real `.env` files, API keys, private deployment notes, or unfinished planning docs. Store those in Viking under the matching project folder.
 
 ## License
 

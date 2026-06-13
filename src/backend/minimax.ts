@@ -26,7 +26,7 @@ export function parseMinimaxConfig(env: NodeJS.ProcessEnv): MinimaxConfig | null
     apiKey,
     endpoint: env.MINIMAX_API_BASE_URL?.trim() || DEFAULT_ENDPOINT,
     model: env.MINIMAX_MODEL?.trim() || DEFAULT_MODEL,
-    voiceId: env.MINIMAX_VOICE_ID?.trim() || "AnnaClone2026new",
+    voiceId: env.MINIMAX_VOICE_ID?.trim() || "female-shaonv",
     groupId: env.MINIMAX_GROUP_ID?.trim() || null,
     speed: numberEnv(env, "MINIMAX_VOICE_SPEED", 1),
     volume: numberEnv(env, "MINIMAX_VOICE_VOLUME", 1),
