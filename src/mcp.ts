@@ -9,14 +9,18 @@ import type { AppConfig } from "./config.js";
 import { voiceSendInputSchema, voiceSendResultSchema, type VoiceSendResult } from "./schemas.js";
 import { VOICE_BUBBLE_MIME, VOICE_BUBBLE_URI, voiceBubbleHtml } from "./widget/voice-bubble-html.js";
 
+const WIDGET_DOMAIN = "https://voice-send.asashiki.com";
+
 function voiceCspMeta(config: AppConfig) {
   return {
     ui: {
+      domain: WIDGET_DOMAIN,
       csp: {
         resourceDomains: config.audioOrigins,
         connectDomains: config.audioOrigins
       }
     },
+    "openai/widgetDomain": WIDGET_DOMAIN,
     "openai/widgetCSP": {
       resource_domains: config.audioOrigins,
       connect_domains: config.audioOrigins
