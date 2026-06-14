@@ -14,7 +14,6 @@ const WIDGET_DOMAIN = "https://voice-send.asashiki.com";
 function voiceCspMeta(config: AppConfig) {
   return {
     ui: {
-      domain: WIDGET_DOMAIN,
       csp: {
         resourceDomains: config.audioOrigins,
         connectDomains: config.audioOrigins
