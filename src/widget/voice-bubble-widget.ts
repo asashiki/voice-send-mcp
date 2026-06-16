@@ -74,8 +74,8 @@ function render(data: BubbleData, platform: "chatgpt" | "claude") {
   const bars: HTMLElement[] = [];
 
   const estimateSeconds = data.durationMs ? data.durationMs / 1000 : Math.max(2, (data.text || "").trim().length / 5.8);
-  const barCount = Math.min(96, Math.max(28, Math.round(estimateSeconds * 8)));
-  bubble.style.setProperty("--bubble-w", `${Math.min(560, 142 + barCount * 5.6)}px`);
+  const barCount = Math.min(88, Math.max(28, Math.round(estimateSeconds * 7.2)));
+  bubble.style.setProperty("--bubble-w", `${Math.min(520, 136 + barCount * 5)}px`);
 
   for (let i = 0; i < barCount; i += 1) {
     const seed = (data.text || data.audioUrl || "").charCodeAt(i % Math.max((data.text || data.audioUrl).length, 1)) || 17;

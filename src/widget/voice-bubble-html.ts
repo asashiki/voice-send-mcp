@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Bump the version suffix whenever the widget changes — hosts cache ui:// resources by URI. */
-export const VOICE_BUBBLE_URI = "ui://widget/voice-bubble-v7.html";
+export const VOICE_BUBBLE_URI = "ui://widget/voice-bubble-v8.html";
 export const VOICE_BUBBLE_MIME = "text/html;profile=mcp-app";
 
 /* Asashiki Design · 樱羽 Sakura tokens (inlined), light + dark via prefers-color-scheme. */
@@ -35,29 +35,28 @@ const CSS = `
          -webkit-font-smoothing:antialiased; }
   #root { padding:4px 0; }
 
-  .msg { max-width:min(560px, 100%); animation:msgIn .3s ease; }
+  .msg { max-width:min(520px, 100%); animation:msgIn .3s ease; }
   @keyframes msgIn { from { transform:translateY(5px); opacity:0; } to { transform:none; opacity:1; } }
 
-  .bubble { width:min(var(--bubble-w, 360px), calc(100vw - 12px));
-            background:linear-gradient(180deg, var(--surface), var(--bg-tint));
+  .bubble { width:min(var(--bubble-w, 340px), calc(100vw - 12px));
+            background:var(--bg-tint);
             border:1px solid var(--border);
             border-radius:var(--radius-l);
-            padding:10px 13px;
-            box-shadow:var(--shadow); }
+            padding:9px 13px; }
 
-  .voice { display:flex; align-items:center; gap:11px; width:100%; }
-  .pp { width:34px; height:34px; border-radius:50%; flex-shrink:0; border:none; cursor:pointer;
-        background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:var(--on-accent);
+  .voice { display:flex; align-items:center; gap:10px; width:100%; }
+  .pp { width:30px; height:30px; border-radius:50%; flex-shrink:0; border:none; cursor:pointer;
+        background:var(--accent); color:var(--on-accent);
         display:flex; align-items:center; justify-content:center;
         transition:all .18s ease; box-shadow:0 1px 3px rgba(0,0,0,.12); }
   .pp:hover { filter:brightness(1.07); }
   .pp:active { transform:scale(.94); }
-  .pp svg { width:13px; height:13px; display:block; }
+  .pp svg { width:12px; height:12px; display:block; }
   .pp .i-pause { display:none; }
   .voice.playing .pp .i-play { display:none; }
   .voice.playing .pp .i-pause { display:block; }
 
-  .wave { display:flex; align-items:center; gap:3px; height:34px; flex:1; min-width:0; cursor:pointer; }
+  .wave { display:flex; align-items:center; gap:2.5px; height:30px; flex:1; min-width:0; cursor:pointer; }
   .wave i { flex:1 1 3px; min-width:2px; max-width:4px; border-radius:3px;
             background:var(--text-3); opacity:.5; height:calc(var(--h) * 1%);
             transition:background .15s ease, opacity .15s ease, transform .15s ease; }
