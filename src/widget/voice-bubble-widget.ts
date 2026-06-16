@@ -54,17 +54,6 @@ function render(data: BubbleData, platform: "chatgpt" | "claude") {
   const msg = document.createElement("div");
   msg.className = "msg";
 
-  const ava = document.createElement("div");
-  ava.className = "ava";
-  ava.textContent = (data.senderName || "A").slice(0, 1).toUpperCase();
-
-  const stack = document.createElement("div");
-  stack.className = "stack";
-
-  const who = document.createElement("div");
-  who.className = "who";
-  who.textContent = `${data.senderName || "Anna"} · 语音`;
-
   const bubble = document.createElement("div");
   bubble.className = "bubble";
 
@@ -83,13 +72,20 @@ function render(data: BubbleData, platform: "chatgpt" | "claude") {
   const wave = document.createElement("div");
   wave.className = "wave";
   const bars: HTMLElement[] = [];
-  BAR_HEIGHTS.forEach((h, i) => {
+
+  const estimateSeconds = data.durationMs ? data.durationMs / 1000 : Math.max(2, (data.text || "").trim().length / 5.8);
+  const barCount = Math.min(96, Math.max(28, Math.round(estimateSeconds * 8)));
+  bubble.style.setProperty("--bubble-w", `${Math.min(560, 142 + barCount * 5.6)}px`);
+
+  for (let i = 0; i < barCount; i += 1) {
+    const seed = (data.text || data.audioUrl || "").charCodeAt(i % Math.max((data.text || data.audioUrl).length, 1)) || 17;
+    const h = BAR_HEIGHTS[(i + seed) % BAR_HEIGHTS.length];
     const bar = document.createElement("i");
     bar.style.setProperty("--h", String(h));
     bar.style.setProperty("--d", String(i));
     wave.appendChild(bar);
     bars.push(bar);
-  });
+  }
 
   const dur = document.createElement("div");
   dur.className = "dur";
@@ -119,7 +115,7 @@ function render(data: BubbleData, platform: "chatgpt" | "claude") {
   audio.addEventListener("error", () => {
     voice.classList.remove("playing");
     dur.textContent = "✕";
-    who.textContent = `${data.senderName || "Anna"} · 音频加载失败`;
+    pp.setAttribute("aria-label", "音频加载失败");
   });
 
   pp.addEventListener("click", () => {
@@ -138,14 +134,7 @@ function render(data: BubbleData, platform: "chatgpt" | "claude") {
 
   voice.append(pp, wave, dur);
   bubble.appendChild(voice);
-  stack.append(who, bubble);
-  if (data.text) {
-    const caption = document.createElement("div");
-    caption.className = "caption";
-    caption.textContent = data.text;
-    stack.appendChild(caption);
-  }
-  msg.append(ava, stack, audio);
+  msg.append(bubble, audio);
   root.appendChild(msg);
 }
 
