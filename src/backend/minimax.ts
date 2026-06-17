@@ -29,7 +29,7 @@ export function parseMinimaxConfig(env: NodeJS.ProcessEnv): MinimaxConfig | null
     voiceId: env.MINIMAX_VOICE_ID?.trim() || "female-shaonv",
     groupId: env.MINIMAX_GROUP_ID?.trim() || null,
     speed: numberEnv(env, "MINIMAX_VOICE_SPEED", 1),
-    volume: numberEnv(env, "MINIMAX_VOICE_VOLUME", 1),
+    volume: numberEnv(env, "MINIMAX_VOICE_VOLUME", 1.35),
     pitch: numberEnv(env, "MINIMAX_VOICE_PITCH", 0),
     sampleRate: numberEnv(env, "MINIMAX_SAMPLE_RATE", 32000),
     bitrate: numberEnv(env, "MINIMAX_BITRATE", 128000),
