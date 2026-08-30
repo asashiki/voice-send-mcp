@@ -16,13 +16,11 @@
 
 # voice-send
 
-让 AI 在聊天里发可播放语音消息的独立 MCP 服务。它提供 `voice_send` 工具：用四种 TTS 之一合成语音、存为 mp3，并返回 `ui://` widget——支持 MCP Apps 的客户端（claude.ai / ChatGPT 网页端）会在对话里渲染出一个类 Telegram 的语音气泡，点击即可播放。
+**让 AI 直接在聊天里回复一个可以点击播放的语音气泡。**
 
-部署后的端点形如：
+AI 只需调用一个 `voice_send` 工具；语音合成、临时音频存储和播放器都由服务处理。无需 API Key 也能使用免费的 Edge TTS，也可以切换到 MiniMax、OpenAI 兼容 TTS 或 ElevenLabs。
 
-```text
-https://voice.example.com/mcp/voice
-```
+本地 stdio、远程 HTTPS、Docker、浅/深色界面和音频自动清理均已包含。
 
 ## 功能亮点
 

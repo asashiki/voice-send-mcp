@@ -16,31 +16,11 @@
 
 # voice-send
 
-Standalone MCP server for sending short playable voice messages in AI chat clients. It exposes a `voice_send` tool, synthesizes speech through one of four TTS providers, stores the mp3, and returns a `ui://` widget so MCP Apps capable clients can render an in-chat audio bubble.
+**Let your AI reply with a playable voice bubble directly inside the chat.**
 
-Example deployed endpoint (yours will differ):
+Call one `voice_send` tool; the server handles speech synthesis, temporary audio storage, and the in-chat player. It works without an API key through Edge TTS, or with MiniMax, OpenAI-compatible TTS, and ElevenLabs.
 
-```text
-https://voice.example.com/mcp/voice
-```
-
-This repository is designed as a complete GitHub-ready MCP tool project: local stdio MCP, remote Streamable HTTP MCP, Docker deployment, typed configuration, CI, and public-safe docs.
-
-## References
-
-Primary MCP references:
-
-- MCP: `https://modelcontextprotocol.io/`
-- Transports: `https://modelcontextprotocol.io/docs/concepts/transports`
-- MCP Apps: `https://modelcontextprotocol.io/docs/extensions/apps`
-- MCP Apps API: `https://apps.extensions.modelcontextprotocol.io/`
-
-Client-specific references:
-
-- Claude Connectors: `https://claude.com/docs/connectors/overview`
-- OpenAI Apps SDK: `https://developers.openai.com/apps-sdk`
-
-The implementation follows MCP first. Claude and ChatGPT differences are kept to compatibility metadata, CSP aliases, and widget host bridge code.
+Local stdio, remote HTTPS, Docker, light/dark UI, and automatic audio cleanup are included.
 
 ## Features
 
@@ -237,6 +217,14 @@ Generated files:
 - `dist/server.js`: remote HTTP server.
 - `dist/stdio.js`: local stdio MCP server.
 - `dist/widget/voice-bubble-widget.global.js`: browser IIFE inlined into the `ui://` HTML resource.
+
+## Protocol references
+
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [MCP transports](https://modelcontextprotocol.io/docs/concepts/transports)
+- [MCP Apps](https://modelcontextprotocol.io/docs/extensions/apps)
+- [Claude Connectors](https://claude.com/docs/connectors/overview)
+- [OpenAI Apps SDK](https://developers.openai.com/apps-sdk)
 
 ## Client Notes
 
