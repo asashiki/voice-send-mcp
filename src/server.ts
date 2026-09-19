@@ -1,3 +1,4 @@
+import { voiceMedia } from "./media.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import cors from "cors";
@@ -54,14 +55,7 @@ async function main() {
   app.use(express.json({ limit: "1mb" }));
 
   const bearerAuth = setupOAuth(app, config.publicBaseUrl, "voice-send");
-  app.use("/voice", express.static(config.voiceDir, {
-    immutable: true,
-    maxAge: "1d",
-    setHeaders(res) {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Content-Type", "audio/mpeg");
-    }
-  }));
+  app.use("/voice", voiceMedia(config.voiceDir));
 
   app.get("/healthz", (_req, res) => {
     res.json({

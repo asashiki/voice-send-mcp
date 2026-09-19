@@ -1,4 +1,4 @@
-import { App } from "@modelcontextprotocol/ext-apps";
+import { connectWidget } from "./host-bridge.js";
 
 interface BubbleData {
   audioUrl: string;
@@ -43,6 +43,7 @@ const PAUSE_SVG =
 const BAR_HEIGHTS = [38, 62, 88, 54, 72, 95, 60, 42, 78, 98, 66, 50, 84, 58, 70, 44, 90, 62, 48, 74, 56, 86, 40, 68];
 
 let rendered = false;
+let cleanupCurrent = () => {};
 
 function render(data: BubbleData, platform: "chatgpt" | "claude") {
   rendered = true;
@@ -61,6 +62,8 @@ function render(data: BubbleData, platform: "chatgpt" | "claude") {
   voice.className = "voice";
 
   const audio = document.createElement("audio");
+  let active = true;
+  cleanupCurrent = () => { active = false; audio.pause(); audio.removeAttribute("src"); audio.load(); };
   audio.src = data.audioUrl;
   audio.preload = "metadata";
 
@@ -118,8 +121,17 @@ function render(data: BubbleData, platform: "chatgpt" | "claude") {
     pp.setAttribute("aria-label", "音频加载失败");
   });
 
+  const startPlayback = async () => {
+    try { if (audio.error) audio.load(); await audio.play(); }
+    catch (error) {
+      if (!active || (error as Error).name === "AbortError") return;
+      voice.classList.remove("playing");
+      dur.textContent = (error as Error).name === "NotAllowedError" ? "请点击播放" : "音频无法播放";
+      pp.setAttribute("aria-label", dur.textContent);
+    }
+  };
   pp.addEventListener("click", () => {
-    if (audio.paused) void audio.play();
+    if (audio.paused) void startPlayback();
     else audio.pause();
   });
 
@@ -129,7 +141,7 @@ function render(data: BubbleData, platform: "chatgpt" | "claude") {
     const rect = wave.getBoundingClientRect();
     const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
     audio.currentTime = ratio * audio.duration;
-    if (audio.paused) void audio.play();
+    if (audio.paused) void startPlayback();
   });
 
   voice.append(pp, wave, dur);
@@ -144,58 +156,9 @@ function showError(msg: string) {
   if (root) root.innerHTML = `<div class="err">${msg}</div>`;
 }
 
-function renderToolResult(params: { structuredContent?: unknown; content?: Array<{ type: string; text?: string }> }, platform: "chatgpt" | "claude") {
-  let data = coerce(params?.structuredContent);
-  if (!data && Array.isArray(params?.content)) {
-    for (const block of params.content) {
-      if (block.type === "text" && block.text) {
-        try { const p = JSON.parse(block.text); data = coerce(p); if (data) break; } catch { /* not json */ }
-      }
-    }
-  }
-  if (data) render(data, platform);
-}
-
-function tryChatGpt() {
-  if (!window.openai) return;
-  const apply = () => {
-    const data = coerce(window.openai?.toolOutput);
-    if (data) render(data, "chatgpt");
-  };
-  apply();
-  window.addEventListener("openai:set_globals", apply as EventListener);
-  window.addEventListener("message", (event) => {
-    if (event.source !== window.parent) return;
-    const message = event.data;
-    if (!message || message.jsonrpc !== "2.0") return;
-    if (message.method !== "ui/notifications/tool-result") return;
-    renderToolResult(message.params, "chatgpt");
-  }, { passive: true });
-}
-
-async function tryMcpApps() {
-  try {
-    const app = new App({ name: "asashiki-voice-send", version: "0.2.0" });
-    /* Register before connect() — host may send toolresult during/right after handshake */
-    app.addEventListener("toolresult", (params: { structuredContent?: unknown; content?: Array<{ type: string; text?: string }> }) => {
-      console.debug("[voice-bubble] ontoolresult:", JSON.stringify(params)?.slice(0, 300));
-      renderToolResult(params, "claude");
-    });
-    await app.connect();
-  } catch (e) {
-    console.debug("[voice-bubble] MCP Apps connect skipped:", e);
-  }
-}
-
 function boot() {
-  /* Run both bridges in parallel — rendered flag prevents double-render */
-  tryChatGpt();
-  void tryMcpApps();
-  setTimeout(() => showError("等待语音数据..."), 4000);
+  connectWidget("voice-send", coerce, render, () => cleanupCurrent());
+  setTimeout(() => showError("等待工具数据…"), 4000);
 }
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", boot);
-} else {
-  boot();
-}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+else boot();
